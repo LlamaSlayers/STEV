@@ -1,0 +1,131 @@
+<html><head>
+<title>STEV Terrain Prototype</title>
+<link href="style.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="simplex.js"></script>
+</head><body>
+<section>
+<h1>Island</h1>
+<canvas id="c1" width="512" height="512"></canvas>
+<script type="text/javascript">
+function terrain1() {
+	var canvas = document.getElementById('c1'),
+		ctx = canvas.getContext('2d');
+	ctx.clearRect(0, 0, 512, 512);
+	ctx.font = '16px/32px sans-serif';
+
+	var tiles = {};
+
+	var i = 0;
+	function tile(x, y) {
+		if (!(y in tiles))
+			tiles[y] = {};
+		if (tiles[y][x])
+			return;
+		tiles[y][x] = true;
+		ctx.fillStyle = '#000';
+		ctx.fillRect(x * 32 + 241, y * 32 + 241, 30, 30);
+		ctx.fillStyle = '#fff';
+		ctx.fillText(' ' + ++i, x * 32 + 240, y * 32 + 256);
+
+		if (x * x + y * y < Math.random() * 16)
+			tile(x - 1, y);
+		if (x * x + y * y < Math.random() * 16)
+			tile(x + 1, y);
+		if (x * x + y * y < Math.random() * 16)
+			tile(x, y - 1);
+		if (x * x + y * y < Math.random() * 16)
+			tile(x, y + 1);
+	}
+	tile(0, 0);
+}
+</script>
+<button onclick="terrain1();">Generate</button>
+</section>
+<section>
+<h1>Landscape</h1>
+<canvas id="c2" width="512" height="512"></canvas>
+<script type="text/javascript">
+function terrain2() {
+	var canvas = document.getElementById('c2'),
+		ctx = canvas.getContext('2d');
+	ctx.clearRect(0, 0, 512, 512);
+
+	var tiles = {};
+
+	function tile(x, y, type) {
+		if (!(y in tiles))
+			tiles[y] = {};
+		if (!(x in tiles[y]))
+			tiles[y][x] = type;
+		ctx.fillStyle = type;
+		ctx.fillRect(x * 16 + 241, y * 16 + 241, 14, 14);
+	}
+
+	var TERRAIN_LOW    = '#050';
+	var TERRAIN_MEDIUM = '#0a0';
+	var TERRAIN_HIGH   = '#0f0';
+	var TERRAIN_WATER  = '#00f';
+
+	var simplex = new SimplexNoise();
+
+	for (var x = -15; x <= 16; x++) {
+		for (var y = -15; y <= 16; y++) {
+			var n = simplex.noise(x / 16, y / 16) + simplex.noise(x * 16, y * 16) / 8;
+			if (n > .5)
+				tile(x, y, TERRAIN_HIGH);
+			else if (n > -.5)
+				tile(x, y, TERRAIN_MEDIUM);
+			else
+				tile(x, y, TERRAIN_LOW);
+		}
+	}
+
+	for (var i = ~~(Math.random() * 1.5 + .5) - 1; i < 1; i++) {
+		var simplex1 = new SimplexNoise();
+		var simplex2 = new SimplexNoise();
+
+		var initialX, x = initialX = ~~(Math.random() * 32) - 15;
+		var initialY, y = initialY = ~~(Math.random() * 32) - 15;
+		tile(x, y, TERRAIN_WATER);
+		for (var j = 0; j < 128; j++) {
+			if (x > 16 || x < -15 || y > 16 || y < -15)
+				break;
+			var h = 0;
+			switch (tiles[Math.round(y)][Math.round(x)]) {
+				case TERRAIN_LOW:
+					h = -1;
+					break;
+				case TERRAIN_HIGH:
+					h = 1;
+					break;
+			}
+			var _x = x;
+			x += simplex1.noise3d(_x / 32, y / 32, h / 3);
+			y += simplex2.noise3d(_x / 32, y / 32, h / 3);
+			tile(Math.round(x), Math.round(y), TERRAIN_WATER);
+		}
+		x = initialX;
+		y = initialY;
+		for (var j = 0; j < 128; j++) {
+			if (x > 16 || x < -15 || y > 16 || y < -15)
+				break;
+			var h = 0;
+			switch (tiles[Math.round(y)][Math.round(x)]) {
+				case TERRAIN_LOW:
+					h = -1;
+					break;
+				case TERRAIN_HIGH:
+					h = 1;
+					break;
+			}
+			var _x = x;
+			x -= simplex1.noise3d(_x / 32, y / 32, h / 3);
+			y -= simplex2.noise3d(_x / 32, y / 32, h / 3);
+			tile(Math.round(x), Math.round(y), TERRAIN_WATER);
+		}
+	}
+}
+</script>
+<button onclick="terrain2();">Generate</button>
+</section>
+</body></html>
